@@ -1,5 +1,3 @@
-
-using System.Runtime.CompilerServices;
 using Npgsql;
 
 public class MoviesRepository : IMoviesRepository
