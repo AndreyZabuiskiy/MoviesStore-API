@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -16,7 +15,6 @@ public class MoviesController : ControllerBase
     public async Task<IActionResult> GetHello()
     {
         var movies = await _moviesRepository.GetAllAsync();
-        ;
         return Ok(movies);
     }
 }
