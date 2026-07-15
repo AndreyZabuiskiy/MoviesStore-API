@@ -22,8 +22,6 @@ public class MoviesRepository : IMoviesRepository
         ", connection);
 
         await using var reader = await command.ExecuteReaderAsync();
-        
-        ;
 
         while (await reader.ReadAsync())
         {
