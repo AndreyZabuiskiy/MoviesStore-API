@@ -47,7 +47,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
             };
         }
 
-        throw new Exception("User was not exists");
+        return null;
     }
 
     public async Task<User> AddUserAsync(User user)

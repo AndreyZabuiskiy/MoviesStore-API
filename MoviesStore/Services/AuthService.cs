@@ -16,7 +16,7 @@ public class AuthService : IAuthService
     {
         if (await _usersRepository.IsUserByEmailAsync(request.Email))
         {
-            throw new Exception("User with this email already exists.");
+            throw new UserAlreadyExistsException();
         }
 
         var newUser = await _usersRepository.AddUserAsync(new User
@@ -34,12 +34,12 @@ public class AuthService : IAuthService
 
         if (user is null)
         {
-            throw new Exception("Invalid email or password.");
+            throw new InvalidCredentialsException();
         }
 
         if(!_passwordService.IsVerifyHashedPassword(user, request.Password))
         {
-            throw new Exception("Invalid email or password.");
+            throw new InvalidCredentialsException();
         }
 
         return _jwtService.CreateToken(user);
