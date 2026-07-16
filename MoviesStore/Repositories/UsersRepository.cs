@@ -23,6 +23,33 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
         return (bool)await command.ExecuteScalarAsync();
     }
 
+    public async Task<User> LoginAsync(string email)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(@"
+            SELECT email, passwd
+            FROM users
+            WHERE email = @email
+        ", connection);
+
+        command.Parameters.AddWithValue("@email", NpgsqlDbType.Text, email);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+
+        if (await reader.ReadAsync())
+        {
+            return new User
+            {
+                Email = reader.GetString(reader.GetOrdinal("email")),
+                PasswordHash = reader.GetString(reader.GetOrdinal("passwd"))
+            };
+        }
+
+        throw new Exception("User was not exists");
+    }
+
     public async Task<User> RegisterAsync(string email, string password)
     {
         await using var connection = new NpgsqlConnection(_connectionString);

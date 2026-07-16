@@ -35,6 +35,24 @@ public class AuthService : IAuthService
         return CreateToken(newUser);
     }
 
+    public async Task<string> LoginAsync(UserAuthDto request)
+    {
+        var user = await _usersRepository.LoginAsync(request.Email);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        if(new PasswordHasher<User>()
+            .VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
+        {
+            return null;
+        }
+
+        return CreateToken(user);
+    }
+
     private string CreateToken(User user)
     {
         var claims = new List<Claim>
