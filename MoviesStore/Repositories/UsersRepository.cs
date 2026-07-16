@@ -23,7 +23,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
         return (bool)await command.ExecuteScalarAsync();
     }
 
-    public async Task<User> LoginAsync(string email)
+    public async Task<User> GetUserByEmailAsync(string email)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -50,7 +50,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
         throw new Exception("User was not exists");
     }
 
-    public async Task<User> RegisterAsync(string email, string password)
+    public async Task<User> AddUserAsync(User user)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -67,8 +67,8 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
             RETURNING user_id, email, user_role, balanse;
         ", connection);
 
-        command.Parameters.AddWithValue("@email", NpgsqlDbType.Text, email);
-        command.Parameters.AddWithValue("@password", NpgsqlDbType.Text, password);
+        command.Parameters.AddWithValue("@email", NpgsqlDbType.Text, user.Email);
+        command.Parameters.AddWithValue("@password", NpgsqlDbType.Text, user.PasswordHash);
 
         await using var reader = await command.ExecuteReaderAsync();
 

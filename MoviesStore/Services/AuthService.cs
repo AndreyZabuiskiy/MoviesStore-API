@@ -1,79 +1,47 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Identity;
-
 public class AuthService : IAuthService
 {
-    private readonly IConfiguration _configuration;
     private readonly IUsersRepository _usersRepository;
+    private readonly IJwtService _jwtService;
+    private readonly IPasswordService _passwordService;
 
-    public AuthService(IConfiguration configuration, IUsersRepository usersRepository)
+    public AuthService(IUsersRepository usersRepository,
+        IJwtService jwtService, IPasswordService passwordService)
     {
-        _configuration = configuration;
         _usersRepository = usersRepository;
+        _jwtService = jwtService;
+        _passwordService = passwordService;
     }
 
     public async Task<string> RegisterAsync(UserAuthDto request)
     {
         if (await _usersRepository.IsUserByEmailAsync(request.Email))
         {
-            return null;
+            throw new Exception("User with this email already exists.");
         }
 
-        var user = new User
+        var newUser = await _usersRepository.AddUserAsync(new User
         {
-            Email = request.Email
-        };
+            Email = request.Email,
+            PasswordHash = _passwordService.HashPassword(new User { Email = request.Email }, request.Password)
+        });
 
-        var hashedPassword = new PasswordHasher<User>()
-            .HashPassword(user,  request.Password);
-
-        var newUser = await _usersRepository.RegisterAsync(request.Email, hashedPassword);
-
-        return CreateToken(newUser);
+        return _jwtService.CreateToken(newUser);
     }
 
     public async Task<string> LoginAsync(UserAuthDto request)
     {
-        var user = await _usersRepository.LoginAsync(request.Email);
+        var user = await _usersRepository.GetUserByEmailAsync(request.Email);
 
         if (user is null)
         {
-            return null;
+            throw new Exception("Invalid email or password.");
         }
 
-        if(new PasswordHasher<User>()
-            .VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
+        if(!_passwordService.IsVerifyHashedPassword(user, request.Password))
         {
-            return null;
+            throw new Exception("Invalid email or password.");
         }
 
-        return CreateToken(user);
-    }
-
-    private string CreateToken(User user)
-    {
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Email, user.Email)
-        };
-
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration.GetValue<string>("AppSettings:Token")!)
-        );
-
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
-
-        var tokenDescriptor = new JwtSecurityToken(
-            issuer: _configuration.GetValue<string>("AppSettings:Issuer"),
-            audience: _configuration.GetValue<string>("AppSettings:Audience"),
-            claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+        return _jwtService.CreateToken(user);
     }
 }
