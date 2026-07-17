@@ -4,17 +4,17 @@ using Microsoft.AspNetCore.Mvc;
 [Route("api/[controller]")]
 public class MoviesController : ControllerBase
 {
-    private readonly IMoviesRepository _moviesRepository;
+    private readonly IMoviesService _moviesService;
 
-    public MoviesController(IMoviesRepository moviesRepository)
+    public MoviesController(IMoviesService moviesService)
     {
-        _moviesRepository = moviesRepository;
+        _moviesService = moviesService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetHello()
+    public async Task<ActionResult<List<MovieCardDto>>> GetAllMovies()
     {
-        var movies = await _moviesRepository.GetAllAsync();
+        var movies = await _moviesService.GetAllMoviesAsync();
         return Ok(movies);
     }
 }

@@ -1,4 +1,4 @@
 public interface IMoviesRepository
 {
-    public Task<IEnumerable<Movie>> GetAllAsync();
+    public Task<List<Movie>> GetAllAsync();
 }
