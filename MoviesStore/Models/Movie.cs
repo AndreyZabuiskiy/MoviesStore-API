@@ -10,4 +10,6 @@ public class Movie
     public string AgeRating { get; set; }
     public double ImdbRating { get; set; }
     public decimal Price { get; set; }
+
+    public Director Director {get; set;}
 }

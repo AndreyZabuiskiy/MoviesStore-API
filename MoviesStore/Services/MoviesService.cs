@@ -11,20 +11,22 @@ public class MoviesService : IMoviesService
     {
         var movies = await _moviesRepository.GetAllAsync();
 
-        var moviesResponse = new List<MovieCardDto>();
+        var moviesDto = new List<MovieCardDto>();
         
         foreach(var movie in movies)
         {
-            moviesResponse.Add(new MovieCardDto
+            moviesDto.Add(new MovieCardDto
             {
                 MovieId = movie.MovieId,
                 Title = movie.Title,
-                DirectorId = movie.DirectorId,
                 ReleaseDate = movie.ReleaseDate,
-                DurationMinutes = movie.DurationMinutes
+                DurationMinutes = movie.DurationMinutes,
+                DirectorId = movie.Director.DirectorId,
+                DirectorFirstName = movie.Director.FirstName,
+                DirectorLastName = movie.Director.LastName
             });
         }
 
-        return moviesResponse;
+        return moviesDto;
     }
 }

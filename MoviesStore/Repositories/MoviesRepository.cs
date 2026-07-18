@@ -17,8 +17,11 @@ public class MoviesRepository : IMoviesRepository
         await connection.OpenAsync();
 
         await using var command = new NpgsqlCommand(@"
-            SELECT movie_id, title, release_date, duration_minutes, price
-            FROM movies
+            SELECT m.movie_id, m.title, m.release_date, m.duration_minutes, m.price,
+                d.director_id, d.first_name, d.last_name
+            FROM movies m
+            INNER JOIN directors d
+            ON m.director_id = d.director_id
         ", connection);
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -28,6 +31,9 @@ public class MoviesRepository : IMoviesRepository
         var releaseDateOrdinal = reader.GetOrdinal("release_date");
         var durationMinutesOrdinal = reader.GetOrdinal("duration_minutes");
         var priceOrdinal = reader.GetOrdinal("price");
+        var directorIdOrdinal = reader.GetOrdinal("director_id");
+        var firstNameOrdinal = reader.GetOrdinal("first_name");
+        var lastNameOrdinal = reader.GetOrdinal("last_name");
 
         while (await reader.ReadAsync())
         {
@@ -37,7 +43,13 @@ public class MoviesRepository : IMoviesRepository
                 Title = reader.GetString(titleOrdinal),
                 ReleaseDate = reader.GetFieldValue<DateOnly>(releaseDateOrdinal),
                 DurationMinutes = reader.GetInt32(durationMinutesOrdinal),
-                Price = reader.GetDecimal(priceOrdinal)
+                Price = reader.GetDecimal(priceOrdinal),
+                Director = new Director
+                {
+                    DirectorId = reader.GetInt32(directorIdOrdinal),
+                    FirstName = reader.GetString(firstNameOrdinal),
+                    LastName = reader.GetString(lastNameOrdinal)
+                }
             });
         }
 
