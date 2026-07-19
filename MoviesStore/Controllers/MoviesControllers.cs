@@ -17,4 +17,11 @@ public class MoviesController : ControllerBase
         var movies = await _moviesService.GetAllMoviesAsync();
         return Ok(movies);
     }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<MovieDetails>> GetMovieDetailsById(int id)
+    {
+        var movie = await _moviesService.GetMovieDetailsAsync(id);
+        return Ok(movie);
+    }
 }

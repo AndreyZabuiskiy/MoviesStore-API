@@ -55,4 +55,46 @@ public class MoviesRepository : IMoviesRepository
 
         return movies;
     }
+
+    public async Task<Movie> GetMovieDetailsAsync(int id)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var command = new NpgsqlCommand(@"
+            SELECT m.movie_id, m.title, m.release_date, m.duration_minutes, m.budget, m.box_office, m.age_rating, m.imdb_rating, m.price,
+                d.director_id, d.first_name, d.last_name
+            FROM movies m
+            INNER JOIN directors d
+            ON d.director_id = m.director_id
+            WHERE movie_id = @id;
+            ", connection);
+
+        command.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Integer, id);
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            return new Movie
+            {
+                MovieId = reader.GetInt32(reader.GetOrdinal("movie_id")),
+                Title = reader.GetString(reader.GetOrdinal("title")),
+                ReleaseDate = reader.GetFieldValue<DateOnly>(reader.GetOrdinal("release_date")),
+                Budget = reader.GetInt32(reader.GetOrdinal("budget")),
+                BoxOffice = reader.GetInt32(reader.GetOrdinal("box_office")),
+                AgeRating = reader.GetString(reader.GetOrdinal("age_rating")),
+                ImdbRating = reader.GetDouble(reader.GetOrdinal("imdb_rating")),
+                Price = reader.GetDecimal(reader.GetOrdinal("price")),
+                Director = new Director
+                {
+                    DirectorId = reader.GetInt32(reader.GetOrdinal("director_id")),
+                    FirstName = reader.GetString(reader.GetOrdinal("first_name")),
+                    LastName = reader.GetString(reader.GetOrdinal("last_name"))
+                }
+            };
+        }
+
+        return null;
+    }
 }
