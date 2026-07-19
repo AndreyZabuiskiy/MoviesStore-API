@@ -56,7 +56,7 @@ public class MoviesRepository : IMoviesRepository
         return movies;
     }
 
-    public async Task<Movie> GetMovieDetailsAsync(int id)
+    public async Task<Movie> GetByIdAsync(int id)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -74,7 +74,7 @@ public class MoviesRepository : IMoviesRepository
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        while (await reader.ReadAsync())
+        if (await reader.ReadAsync())
         {
             return new Movie
             {

@@ -6,7 +6,5 @@ public class MovieCardDto
     public int DurationMinutes { get; set; }
     public decimal Price { get; set; }
 
-    public int DirectorId { get; set; }
-    public string DirectorFirstName { get; set; }
-    public string DirectorLastName { get; set; }
+    public DirectorCardDto Director { get; set; }
 }

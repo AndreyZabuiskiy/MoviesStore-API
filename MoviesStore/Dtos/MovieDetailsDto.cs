@@ -1,4 +1,4 @@
-public class MovieDetails
+public class MovieDetailsDto
 {
     public int MovieId { get; set; }
     public string Title { get; set; }
@@ -10,7 +10,5 @@ public class MovieDetails
     public double ImdbRating { get; set; }
     public decimal Price { get; set; }
 
-    public int DirectorId { get; set; }
-    public string DirectorFirstName { get; set; }
-    public string DirectorLastName { get; set; }
+    public DirectorCardDto Director { get; set; }
 }

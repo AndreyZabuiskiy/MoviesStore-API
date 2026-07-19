@@ -22,20 +22,25 @@ public class MoviesService : IMoviesService
                 ReleaseDate = movie.ReleaseDate,
                 DurationMinutes = movie.DurationMinutes,
                 Price = movie.Price,
-                DirectorId = movie.Director.DirectorId,
-                DirectorFirstName = movie.Director.FirstName,
-                DirectorLastName = movie.Director.LastName
+                Director = new DirectorCardDto
+                {
+                    DirectorId = movie.Director.DirectorId,
+                    FirstName = movie.Director.FirstName,
+                    LastName = movie.Director.LastName
+                }
             });
         }
 
         return moviesDto;
     }
 
-    public async Task<MovieDetails> GetMovieDetailsAsync(int id)
+    public async Task<MovieDetailsDto> GetMovieDetailsAsync(int id)
     {
-        var movie = await _moviesRepository.GetMovieDetailsAsync(id);
+        var movie = await _moviesRepository.GetByIdAsync(id);
 
-        var movieResponse = new MovieDetails
+        if (movie == null) throw new MovieNotFoundException(id);
+
+        var movieDetails = new MovieDetailsDto
         {
             MovieId = movie.MovieId,
             Title = movie.Title,
@@ -45,11 +50,14 @@ public class MoviesService : IMoviesService
             AgeRating = movie.AgeRating,
             ImdbRating = movie.ImdbRating,
             Price = movie.Price,
-            DirectorId = movie.Director.DirectorId,
-            DirectorFirstName = movie.Director.FirstName,
-            DirectorLastName = movie.Director.LastName
+            Director = new DirectorCardDto
+            {
+                DirectorId = movie.Director.DirectorId,
+                FirstName = movie.Director.FirstName,
+                LastName = movie.Director.LastName
+            }
         };
 
-        return movieResponse;
+        return movieDetails;
     }
 }
