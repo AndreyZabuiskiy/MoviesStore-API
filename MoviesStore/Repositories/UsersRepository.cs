@@ -29,7 +29,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
         await connection.OpenAsync();
 
         await using var command = new NpgsqlCommand(@"
-            SELECT email, passwd
+            SELECT user_id, email, passwd
             FROM users
             WHERE email = @email
         ", connection);
@@ -42,6 +42,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
         {
             return new User
             {
+                UserId = reader.GetInt32(reader.GetOrdinal("user_id")),
                 Email = reader.GetString(reader.GetOrdinal("email")),
                 PasswordHash = reader.GetString(reader.GetOrdinal("passwd"))
             };
@@ -56,7 +57,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
         await connection.OpenAsync();
 
         await using var command = new NpgsqlCommand(@"
-            INSERT INTO users (email, passwd, user_role, balanse)
+            INSERT INTO users (email, passwd, user_role, balance)
             VALUES
             (
                 @email,
@@ -64,7 +65,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
                 'user',
                 0
             )
-            RETURNING user_id, email, user_role, balanse;
+            RETURNING user_id, email, user_role, balance;
         ", connection);
 
         command.Parameters.AddWithValue("@email", NpgsqlDbType.Text, user.Email);
@@ -79,7 +80,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
                 UserId = reader.GetInt32(reader.GetOrdinal("user_id")),
                 Email = reader.GetString(reader.GetOrdinal("email")),
                 Role = reader.GetString(reader.GetOrdinal("user_role")),
-                Balance = reader.GetDecimal(reader.GetOrdinal("balanse"))
+                Balance = reader.GetDecimal(reader.GetOrdinal("balance"))
             };
         }
 

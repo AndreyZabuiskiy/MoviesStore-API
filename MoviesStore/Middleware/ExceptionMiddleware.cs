@@ -39,8 +39,19 @@ public class ExceptionMiddleware
             {
                 message = ex.Message
             });
+        } catch (UserNotFoundException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = ex.Message
+            });
         } catch (Exception ex)
         {
+            Console.WriteLine(ex);
+
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Response.ContentType = "application/json";
 
