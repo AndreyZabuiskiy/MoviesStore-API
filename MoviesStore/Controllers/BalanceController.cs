@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,5 +23,18 @@ public class BalanceController : ControllerBase
 
         var balance = await _balanceService.GetBalanceByIdAsync(userId);
         return Ok(balance);
+    }
+
+    [Authorize]
+    [HttpPost("top-up")]
+    public async Task<ActionResult<string>> TopUpBalance([FromBody]TopUpBalanceRequestDto request)
+    {
+        var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+        );
+
+        var balanceResponseDto = await _balanceService.TopUpBalanceAsync(userId, request.Amount);
+
+        return Ok(balanceResponseDto);
     }
 }

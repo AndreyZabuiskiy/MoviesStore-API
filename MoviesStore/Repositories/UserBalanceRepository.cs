@@ -1,4 +1,3 @@
-
 using Npgsql;
 
 public class UserBalanceRepository : IUserBalanceRepository
@@ -35,5 +34,24 @@ public class UserBalanceRepository : IUserBalanceRepository
         }
 
         return null;
+    }
+
+    public async Task<bool> TopUpBalanceAsync(int id, decimal amount)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(@"
+            UPDATE users 
+            SET balance = balance + @amount
+            WHERE user_id = @id;
+        ", connection);
+
+        command.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Integer, id);
+        command.Parameters.AddWithValue("@amount", NpgsqlTypes.NpgsqlDbType.Numeric, amount);
+
+        var rows = await command.ExecuteNonQueryAsync();
+        
+        return rows > 0;
     }
 }
