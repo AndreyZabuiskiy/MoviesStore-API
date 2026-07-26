@@ -9,31 +9,27 @@ public class UserBalanceRepository : IUserBalanceRepository
         _connectionString = configuration.GetConnectionString("Postgres");
     }
 
-    public async Task<User> GetBalanceAsync(int id)
+    public async Task<decimal?> GetBalanceAsync(int id)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
 
         await using var command = new NpgsqlCommand(@"
-            SELECT user_id, balance
+            SELECT balance
             FROM users
             WHERE user_id = @id
         ", connection);
 
         command.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Integer, id);
 
-        await using var reader = await command.ExecuteReaderAsync();
+        var result = await command.ExecuteScalarAsync();
 
-        if (await reader.ReadAsync())
+        if (result == null)
         {
-            return new User
-            {
-                UserId = reader.GetInt32(reader.GetOrdinal("user_id")),
-                Balance = reader.GetDecimal(reader.GetOrdinal("balance"))
-            };
+            return null;
         }
 
-        return null;
+        return (decimal)result;
     }
 
     public async Task<bool> TopUpBalanceAsync(int id, decimal amount)

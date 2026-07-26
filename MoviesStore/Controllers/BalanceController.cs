@@ -15,14 +15,17 @@ public class BalanceController : ControllerBase
 
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult> GetBalance()
+    public async Task<ActionResult<UserBalanceDto>> GetBalance()
     {
         var userId = int.Parse(
             User.FindFirstValue(ClaimTypes.NameIdentifier)
         );
 
         var balance = await _balanceService.GetBalanceByIdAsync(userId);
-        return Ok(balance);
+        return Ok(new UserBalanceDto
+        {
+            Balance = balance
+        });
     }
 
     [Authorize]
@@ -33,8 +36,8 @@ public class BalanceController : ControllerBase
             User.FindFirstValue(ClaimTypes.NameIdentifier)
         );
 
-        var balanceResponseDto = await _balanceService.TopUpBalanceAsync(userId, request.Amount);
+        var balanceDto = await _balanceService.TopUpBalanceAsync(userId, request.Amount);
 
-        return Ok(balanceResponseDto);
+        return Ok(balanceDto);
     }
 }

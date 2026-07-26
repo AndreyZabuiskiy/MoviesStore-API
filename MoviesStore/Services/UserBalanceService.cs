@@ -9,29 +9,25 @@ public class UserBalanceService : IUserBalanceService
         _transactionsService = transactionsService;
     }
 
-    public async Task<CurrentUserBalanceDto> GetBalanceByIdAsync (int id)
+    public async Task<decimal> GetBalanceByIdAsync (int id)
     {
-        var userBalance = await _balanceRepository.GetBalanceAsync(id);
+        var balance = await _balanceRepository.GetBalanceAsync(id);
 
-        if (userBalance == null)
+        if (balance is null)
             throw new UserNotFoundException(id);
 
-        return new CurrentUserBalanceDto
-        {
-            UserId = id,
-            Balance = userBalance.Balance
-        };
+        return balance.Value;
     }
 
     public async Task<TopUpBalanceResponseDto> TopUpBalanceAsync(int id, decimal amount)
     {
-        var userBalance = await GetBalanceByIdAsync(id);
+        var balance = await GetBalanceByIdAsync(id);
 
         var transactionId = await _transactionsService.CreateTransactionAsync(new UserTransaction
         {
             TransactionType = TransactionType.TopUp,
-            UserId = userBalance.UserId,
-            BalanceBefore = userBalance.Balance,
+            UserId = id,
+            BalanceBefore = balance,
             Amount = amount
         });
 
@@ -42,8 +38,8 @@ public class UserBalanceService : IUserBalanceService
             TransactionId = transactionId,
             UserId = id,
             Amount = amount,
-            BalanceBefore = userBalance.Balance,
-            BalanceAfter = userBalance.Balance + amount
+            BalanceBefore = balance,
+            BalanceAfter = balance + amount
         };
 
         return topUpDto;
