@@ -17,8 +17,7 @@ public class UserBalanceRepository : IUserBalanceRepository
         await using var command = new NpgsqlCommand(@"
             SELECT balance
             FROM users
-            WHERE user_id = @id
-        ", connection);
+            WHERE user_id = @id", connection);
 
         command.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Integer, id);
 
@@ -29,25 +28,45 @@ public class UserBalanceRepository : IUserBalanceRepository
             return null;
         }
 
-        return (decimal)result;
+        return Convert.ToDecimal(result);
     }
 
-    public async Task<bool> TopUpBalanceAsync(int id, decimal amount)
+    public async Task<decimal?> GetBalanceForUpdateAsync(NpgsqlConnection connection, NpgsqlTransaction sqlTransaction, int id)
     {
-        await using var connection = new NpgsqlConnection(_connectionString);
-        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(@"
+            SELECT balance
+            FROM users
+            WHERE user_id = @id
+            FOR UPDATE
+            ", connection, sqlTransaction);
 
+        command.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Integer, id);
+
+        var result = await command.ExecuteScalarAsync();
+
+        if (result == null)
+        {
+            return null;
+        }
+
+        return Convert.ToDecimal(result);
+    }
+
+    public async Task IncreaseBalanceAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction sqlTransaction,
+        int id,
+        decimal amount)
+    {
         await using var command = new NpgsqlCommand(@"
             UPDATE users 
             SET balance = balance + @amount
             WHERE user_id = @id;
-        ", connection);
+        ", connection, sqlTransaction);
 
         command.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Integer, id);
         command.Parameters.AddWithValue("@amount", NpgsqlTypes.NpgsqlDbType.Numeric, amount);
 
-        var rows = await command.ExecuteNonQueryAsync();
-        
-        return rows > 0;
+        await command.ExecuteNonQueryAsync();
     }
 }

@@ -1,12 +1,20 @@
+using Npgsql;
+
 public class UserBalanceService : IUserBalanceService
 {
     private readonly IUserBalanceRepository _balanceRepository;
-    private readonly ITransactionsService _transactionsService;
+    private readonly ITransactionsRepository _transactionsRepository;
+    private readonly string _connectionString;
+    const decimal MAX_TOP_UP_AMOUNT = 1_000_000m;
 
-    public UserBalanceService(IUserBalanceRepository userBalanceRepository, ITransactionsService transactionsService)
+    public UserBalanceService(
+        IUserBalanceRepository userBalanceRepository,
+        ITransactionsRepository transactionsRepository,
+        IConfiguration configuration)
     {
         _balanceRepository = userBalanceRepository;
-        _transactionsService = transactionsService;
+        _transactionsRepository = transactionsRepository;
+        _connectionString = configuration.GetConnectionString("Postgres");
     }
 
     public async Task<decimal> GetBalanceByIdAsync (int id)
@@ -21,27 +29,62 @@ public class UserBalanceService : IUserBalanceService
 
     public async Task<TopUpBalanceResponseDto> TopUpBalanceAsync(int id, decimal amount)
     {
-        var balance = await GetBalanceByIdAsync(id);
+        if (amount <= 0 || amount > MAX_TOP_UP_AMOUNT)
+            throw new InvalidTopUpAmountException(amount);
 
-        var transactionId = await _transactionsService.CreateTransactionAsync(new UserTransaction
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var sqlTransaction = await connection.BeginTransactionAsync();
+
+        try
         {
-            TransactionType = TransactionType.TopUp,
-            UserId = id,
-            BalanceBefore = balance,
-            Amount = amount
-        });
+            var balance = await GetBalanceForTransactionAsync(connection, sqlTransaction, id);
 
-        await _balanceRepository.TopUpBalanceAsync(id, amount);
+            var transaction = await _transactionsRepository.AddTransactionAsync(
+                connection,
+                sqlTransaction,
+                new UserTransaction
+                {
+                    TransactionType = TransactionType.TopUp,
+                    UserId = id,
+                    BalanceBefore = balance,
+                    BalanceAfter = balance + amount,
+                    Amount = amount
+                }
+            );
 
-        var topUpDto = new TopUpBalanceResponseDto
+            await _balanceRepository.IncreaseBalanceAsync(connection, sqlTransaction, id, amount);
+
+            var topUpDto = new TopUpBalanceResponseDto
+            {
+                TransactionId = transaction.TransactionId,
+                UserId = id,
+                Amount = amount,
+                BalanceBefore = transaction.BalanceBefore,
+                BalanceAfter = transaction.BalanceAfter
+            };
+
+            await sqlTransaction.CommitAsync();
+            return topUpDto;
+        }
+        catch
         {
-            TransactionId = transactionId,
-            UserId = id,
-            Amount = amount,
-            BalanceBefore = balance,
-            BalanceAfter = balance + amount
-        };
+            await sqlTransaction.RollbackAsync();
+            throw;
+        }
+    }
 
-        return topUpDto;
+    private async Task<decimal> GetBalanceForTransactionAsync (
+        NpgsqlConnection connection,
+        NpgsqlTransaction sqlTransaction,
+        int id)
+    {
+        var balance = await _balanceRepository.GetBalanceForUpdateAsync(connection, sqlTransaction, id);
+
+        if (balance is null)
+            throw new UserNotFoundException(id);
+
+        return balance.Value;
     }
 }

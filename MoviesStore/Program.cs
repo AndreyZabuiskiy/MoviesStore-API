@@ -37,7 +37,6 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IMoviesService, MoviesService>();
 builder.Services.AddScoped<IUserBalanceService, UserBalanceService>();
-builder.Services.AddScoped<ITransactionsService, TransactionsService>();
 
 var app = builder.Build();
 

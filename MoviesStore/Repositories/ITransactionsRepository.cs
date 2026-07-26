@@ -1,4 +1,9 @@
+using Npgsql;
+
 public interface ITransactionsRepository
 {
-    public Task<int> CreateTransactionAsync(UserTransaction transaction);
+    public Task<UserTransaction> AddTransactionAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction sqlTransaction,
+        UserTransaction transaction);
 }

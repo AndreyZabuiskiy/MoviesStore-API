@@ -30,6 +30,15 @@ public class ExceptionMiddleware
             {
                 message = ex.Message
             });
+        }catch (InvalidTopUpAmountException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = ex.Message
+            });
         } catch (MovieNotFoundException ex)
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
