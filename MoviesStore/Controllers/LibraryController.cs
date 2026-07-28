@@ -15,7 +15,7 @@ public class LibraryController : ControllerBase
 
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult<LibraryResponseDto>> GetLibrary()
+    public async Task<ActionResult<LibraryResponseDto>> GetLibraryAsync()
     {
         var userId = int.Parse(
             User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -23,5 +23,17 @@ public class LibraryController : ControllerBase
 
         var movies = await _libraryService.GetLibraryByUserIdAsync(userId);
         return Ok(movies);
+    }
+
+    [Authorize]
+    [HttpPatch("movie/visibility/{movieId}")]
+    public async Task<ActionResult> SetMovieVisibilityAsync(int movieId, [FromBody]UpdateMovieVisibilityRequestDto request)
+    {
+        var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+        );
+
+        await _libraryService.SetMovieVisibilityAsync(userId, movieId, request.IsHidden);
+        return NoContent();;
     }
 }

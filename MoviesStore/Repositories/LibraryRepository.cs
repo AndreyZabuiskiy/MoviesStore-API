@@ -46,4 +46,25 @@ public class LibraryRepository : ILibraryRepository
 
         return movies;
     }
+
+    public async Task<bool> SetMovieVisibilityAsync(int userId, int movieId, bool isHidden)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(@"
+            UPDATE user_library_movies
+            SET is_hidden = @is_hidden
+            WHERE user_id = @user_id
+                AND movie_id = @movie_id
+        ", connection);
+
+        command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
+        command.Parameters.AddWithValue("@movie_id", NpgsqlTypes.NpgsqlDbType.Integer, movieId);
+        command.Parameters.AddWithValue("@is_hidden", NpgsqlTypes.NpgsqlDbType.Boolean, isHidden);
+
+        var rows = await command.ExecuteNonQueryAsync();
+
+        return rows > 0;
+    }
 }
