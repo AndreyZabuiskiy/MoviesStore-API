@@ -15,13 +15,16 @@ public class LibraryController : ControllerBase
 
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult<LibraryResponseDto>> GetLibraryAsync()
+    public async Task<ActionResult<LibraryResponseDto>> GetLibraryAsync([FromQuery]LibraryQueryDto query)
     {
         var userId = int.Parse(
             User.FindFirstValue(ClaimTypes.NameIdentifier)
         );
 
-        var movies = await _libraryService.GetLibraryByUserIdAsync(userId);
+        query.Visibility ??= "";
+        query.Sort ??= "";
+
+        var movies = await _libraryService.GetLibraryByUserIdAsync(userId, query.Visibility, query.Sort);
         return Ok(movies);
     }
 

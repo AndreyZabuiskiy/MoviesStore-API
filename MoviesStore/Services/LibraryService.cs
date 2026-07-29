@@ -1,5 +1,5 @@
 public class LibraryService : ILibraryService
-{
+{    
     private readonly ILibraryRepository _libraryRepository;
 
     public LibraryService(ILibraryRepository libraryRepository)
@@ -7,23 +7,49 @@ public class LibraryService : ILibraryService
         _libraryRepository = libraryRepository;
     }
 
-    public async Task<LibraryResponseDto> GetLibraryByUserIdAsync(int id)
+    public async Task<LibraryResponseDto> GetLibraryByUserIdAsync(int id, string visibilityQuery, string sortQuery)
     {
-        var moviesModel = await _libraryRepository.GetLibraryMoviesAsync(id);
-        var libraryMoviesDto = new List<LibraryMovieDto>();
+        var sortType = SortTypeLibraryMovie.SortTypesList.FirstOrDefault(s => s == sortQuery);
+        if (sortType != null)
+        {
+            await _libraryRepository.SetSortLibrarySettingsAsync(id, sortType);
+        } 
+        else
+        {
+            sortType = await _libraryRepository.GetSortTypeLibrarySettingsAsync(id);
+        }
 
+        var visibleType = VisibleTypeLibraryMovie.VisibleTypesList.FirstOrDefault(v => v == visibilityQuery);
+        if (visibleType != null)
+        {
+            await _libraryRepository.SetVisibleLibraryMovieAsync(id, visibleType);
+        } 
+        else
+        {
+            visibleType = await _libraryRepository.GetVisibleLibraryMovieAsync(id);
+        }
+
+        var moviesModel = await _libraryRepository.GetLibraryMoviesAsync(id, visibleType, sortType);
+
+        var libraryMoviesDto = new List<LibraryMovieDto>();
         foreach(var movie in moviesModel)
         {
             libraryMoviesDto.Add(new LibraryMovieDto
             {
                 MovieId = movie.MovieId,
                 Title = movie.Title,
+                DurationMinutes = movie.DurationMinutes,
+                ImdbRating = movie.ImdbRating,
+                Price = movie.Price,
+                IsHidden = movie.IsHidden,
                 AddedAt = movie.AddedAt
             });
         }
 
         return new LibraryResponseDto
         {
+            SortType = sortType,
+            VisibleType = visibleType,
             Movies = libraryMoviesDto
         };
     }
