@@ -7,27 +7,10 @@ public class LibraryService : ILibraryService
         _libraryRepository = libraryRepository;
     }
 
-    public async Task<LibraryResponseDto> GetLibraryByUserIdAsync(int id, string visibilityQuery, string sortQuery)
+    public async Task<LibraryResponseDto> GetLibraryByUserIdAsync(int id, string? visibilityQuery, string? sortQuery)
     {
-        var sortType = SortTypeLibraryMovie.SortTypesList.FirstOrDefault(s => s == sortQuery);
-        if (sortType != null)
-        {
-            await _libraryRepository.SetSortLibrarySettingsAsync(id, sortType);
-        } 
-        else
-        {
-            sortType = await _libraryRepository.GetSortTypeLibrarySettingsAsync(id);
-        }
-
-        var visibleType = VisibleTypeLibraryMovie.VisibleTypesList.FirstOrDefault(v => v == visibilityQuery);
-        if (visibleType != null)
-        {
-            await _libraryRepository.SetVisibleLibraryMovieAsync(id, visibleType);
-        } 
-        else
-        {
-            visibleType = await _libraryRepository.GetVisibleLibraryMovieAsync(id);
-        }
+        var visibleType = await ResolveVisibleTypeAsync(id, visibilityQuery);
+        var sortType = await ResolveSortTypeAsync(id, sortQuery);
 
         var moviesModel = await _libraryRepository.GetLibraryMoviesAsync(id, visibleType, sortType);
 
@@ -60,5 +43,37 @@ public class LibraryService : ILibraryService
 
         if(!isUpdateSuccess)
             throw new MovieNotFoundInLibraryException(movieId);
+    }
+
+    private async Task<string> ResolveSortTypeAsync(int id, string? sortQuery)
+    {
+        var sortType = sortQuery is null ? "" : sortQuery;
+
+        if (SortTypeLibraryMovies.IsSortValid(sortQuery))
+        {
+            await _libraryRepository.SetSortTypeLibrarySettingsAsync(id, sortType);
+        }
+        else
+        {
+            sortType = await _libraryRepository.GetSortTypeLibrarySettingsAsync(id);
+        }
+
+        return sortType;
+    }
+
+    private async Task<string> ResolveVisibleTypeAsync(int id, string? visibleQuery)
+    {
+        var visibleType = visibleQuery is null ? "" : visibleQuery;
+
+        if (VisibleTypeLibraryMovies.IsVisibleValid(visibleQuery))
+        {
+            await _libraryRepository.SetVisibleTypeLibrarySettingsAsync(id, visibleType);
+        } 
+        else
+        {
+            visibleType = await _libraryRepository.GetVisibleTypeLibrarySettingsAsync(id);
+        }
+
+        return visibleType;
     }
 }

@@ -3,28 +3,13 @@ using Npgsql;
 public class LibraryRepository : ILibraryRepository
 {
     private readonly string _connectionString;
-    Dictionary<string, string> visibilityTypesDictionary = new Dictionary<string, string>()
-    {
-        { VisibleTypeLibraryMovie.VISIBLE, "WHERE ulm.user_id = @user_id AND ulm.is_hidden = false" },
-        { VisibleTypeLibraryMovie.HIDDEN, "WHERE ulm.user_id = @user_id AND ulm.is_hidden = true" },
-        { VisibleTypeLibraryMovie.ALL, "WHERE ulm.user_id = @user_id"}
-    };
-    Dictionary<string, string> sortTypesDictionary = new Dictionary<string, string>()
-    {
-        { SortTypeLibraryMovie.TITLE, "ORDER BY m.title" },
-        { SortTypeLibraryMovie.DURATION, "ORDER BY m.duration_minutes DESC" },
-        { SortTypeLibraryMovie.ADDED_AT, "ORDER BY ulm.added_at DESC"},
-        { SortTypeLibraryMovie.PRICE_DESC, "ORDER BY m.price DESC"},
-        { SortTypeLibraryMovie.PRICE_ASC, "ORDER BY m.price ASC"},
-        { SortTypeLibraryMovie.IMDB_RATIONG, "ORDER BY m.imdb_rating DESC"}
-    };
 
     public LibraryRepository(IConfiguration configuration)
     {
         _connectionString = configuration.GetConnectionString("Postgres");
     }
 
-    public async Task<List<LibraryMovieReadModel>> GetLibraryMoviesAsync(int userId, string visibility, string sort)
+    public async Task<List<LibraryMovieReadModel>> GetLibraryMoviesAsync(int userId, string visibilityType, string sortType)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -34,16 +19,8 @@ public class LibraryRepository : ILibraryRepository
             FROM user_library_movies ulm
             INNER JOIN movies m
             ON ulm.movie_id = m.movie_id
-            {
-                (visibilityTypesDictionary.TryGetValue(visibility, out string visibilityQuery)
-                ? visibilityQuery
-                : "WHERE ulm.user_id = @user_id")
-            }
-            {
-                (sortTypesDictionary.TryGetValue(sort, out string sortQuery)
-                ? sortQuery
-                : "ORDER BY m.title")
-            };
+            { GetVisibleTypeQuery(visibilityType) }
+            { GetSortTypeQuery(sortType) };
         ", connection);
 
         command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
@@ -90,12 +67,12 @@ public class LibraryRepository : ILibraryRepository
 
         command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
 
-        var result = (string)await command.ExecuteScalarAsync();
+        var result = await command.ExecuteScalarAsync();
 
-        return result;
+        return result.ToString();
     }
 
-    public async Task<string> GetVisibleLibraryMovieAsync(int userId)
+    public async Task<string> GetVisibleTypeLibrarySettingsAsync(int userId)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -108,8 +85,8 @@ public class LibraryRepository : ILibraryRepository
 
         command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
 
-        var result = (string)await command.ExecuteScalarAsync();
-        return result;
+        var result = await command.ExecuteScalarAsync();
+        return result.ToString();
     }
 
     public async Task<bool> SetMovieVisibilityAsync(int userId, int movieId, bool isHidden)
@@ -129,11 +106,10 @@ public class LibraryRepository : ILibraryRepository
         command.Parameters.AddWithValue("@is_hidden", NpgsqlTypes.NpgsqlDbType.Boolean, isHidden);
 
         var rows = await command.ExecuteNonQueryAsync();
-
         return rows > 0;
     }
 
-    public async Task<bool> SetSortLibrarySettingsAsync(int userId, string sortType)
+    public async Task<bool> SetSortTypeLibrarySettingsAsync(int userId, string sortType)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -141,8 +117,7 @@ public class LibraryRepository : ILibraryRepository
         await using var command = new NpgsqlCommand(@"
             UPDATE user_library_settings
             SET sort_type = @sort_type
-            WHERE user_id = @user_id
-            RETURNING sort_type;
+            WHERE user_id = @user_id;
         ", connection);
 
         command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
@@ -152,7 +127,7 @@ public class LibraryRepository : ILibraryRepository
         return rows > 0;
     }
 
-    public async Task<bool> SetVisibleLibraryMovieAsync(int userId, string visibleType)
+    public async Task<bool> SetVisibleTypeLibrarySettingsAsync(int userId, string visibleType)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -169,5 +144,50 @@ public class LibraryRepository : ILibraryRepository
         var rows = await command.ExecuteNonQueryAsync();
 
         return rows > 0;
+    }
+
+    private string GetSortTypeQuery(string sortType)
+    {
+        switch (sortType)
+        {
+            case SortTypeLibraryMovies.TITLE:
+                return "ORDER BY m.title";
+
+            case SortTypeLibraryMovies.DURATION:
+                return "ORDER BY m.duration_minutes DESC";
+
+            case SortTypeLibraryMovies.ADDED_AT:
+                return "ORDER BY ulm.added_at DESC";
+
+            case SortTypeLibraryMovies.PRICE_DESC:
+                return "ORDER BY m.price DESC";
+
+            case SortTypeLibraryMovies.PRICE_ASC:
+                return "ORDER BY m.price ASC";
+
+            case SortTypeLibraryMovies.IMDB_RATIONG:
+                return "ORDER BY m.imdb_rating DESC"; 
+            
+            default:
+                return "ORDER BY m.title";
+        }
+    }
+
+    private string GetVisibleTypeQuery(string visibleType)
+    {
+        switch (visibleType)
+        {
+            case VisibleTypeLibraryMovies.VISIBLE:
+                return "WHERE ulm.user_id = @user_id AND ulm.is_hidden = false";
+
+            case VisibleTypeLibraryMovies.HIDDEN:
+                return "WHERE ulm.user_id = @user_id AND ulm.is_hidden = true";
+
+            case VisibleTypeLibraryMovies.ALL:
+                return "WHERE ulm.user_id = @user_id";
+            
+            default:
+                return "WHERE ulm.user_id = @user_id AND ulm.is_hidden = false";
+        }
     }
 }

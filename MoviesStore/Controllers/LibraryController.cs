@@ -21,9 +21,6 @@ public class LibraryController : ControllerBase
             User.FindFirstValue(ClaimTypes.NameIdentifier)
         );
 
-        query.Visibility ??= "";
-        query.Sort ??= "";
-
         var movies = await _libraryService.GetLibraryByUserIdAsync(userId, query.Visibility, query.Sort);
         return Ok(movies);
     }
