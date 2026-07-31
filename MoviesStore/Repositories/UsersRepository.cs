@@ -5,11 +5,11 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
 {
     private readonly string _connectionString = configuration.GetConnectionString("Postgres");
 
-    public async Task<bool> IsUserByEmailAsync(string email)
+    public async Task<bool> IsUserByEmailAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction sqlTransaction,
+        string email)
     {
-        await using var connection = new NpgsqlConnection(_connectionString);
-        await connection.OpenAsync();
-
         await using var command = new NpgsqlCommand(@"
             SELECT EXISTS(
                 SELECT 1
@@ -51,11 +51,11 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
         return null;
     }
 
-    public async Task<User> AddUserAsync(User user)
+    public async Task<User> AddUserAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction sqlTransaction,
+        User user)
     {
-        await using var connection = new NpgsqlConnection(_connectionString);
-        await connection.OpenAsync();
-
         await using var command = new NpgsqlCommand(@"
             INSERT INTO users (email, passwd, user_role, balance)
             VALUES
@@ -66,7 +66,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
                 0
             )
             RETURNING user_id, email, user_role, balance;
-        ", connection);
+        ", connection, sqlTransaction);
 
         command.Parameters.AddWithValue("@email", NpgsqlDbType.Text, user.Email);
         command.Parameters.AddWithValue("@password", NpgsqlDbType.Text, user.PasswordHash);

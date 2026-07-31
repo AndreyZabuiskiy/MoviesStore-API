@@ -9,6 +9,22 @@ public class LibraryRepository : ILibraryRepository
         _connectionString = configuration.GetConnectionString("Postgres");
     }
 
+    public async Task<bool> CreateUserLibraryAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction sqlTransaction,
+        int userId)
+    {
+        await using var command = new NpgsqlCommand(@"
+            INSERT INTO user_library_settings (user_id)
+            VALUES (@user_id);
+        ", connection, sqlTransaction);
+
+        command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
+
+        var rows = await command.ExecuteNonQueryAsync();
+        return rows > 0;
+    }
+
     public async Task<List<LibraryMovieReadModel>> GetLibraryMoviesAsync(int userId, string visibilityType, string sortType)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
@@ -54,7 +70,7 @@ public class LibraryRepository : ILibraryRepository
         return movies;
     }
 
-    public async Task<string> GetSortTypeLibrarySettingsAsync(int userId)
+    public async Task<string?> GetSortTypeLibrarySettingsAsync(int userId)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -68,11 +84,10 @@ public class LibraryRepository : ILibraryRepository
         command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
 
         var result = await command.ExecuteScalarAsync();
-
-        return result.ToString();
+        return result as string;
     }
 
-    public async Task<string> GetVisibleTypeLibrarySettingsAsync(int userId)
+    public async Task<string?> GetVisibleTypeLibrarySettingsAsync(int userId)
     {
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -86,7 +101,7 @@ public class LibraryRepository : ILibraryRepository
         command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
 
         var result = await command.ExecuteScalarAsync();
-        return result.ToString();
+        return result as string;
     }
 
     public async Task<bool> SetMovieVisibilityAsync(int userId, int movieId, bool isHidden)

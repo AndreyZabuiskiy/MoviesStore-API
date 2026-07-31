@@ -1,31 +1,56 @@
+using Npgsql;
+
 public class AuthService : IAuthService
 {
     private readonly IUsersRepository _usersRepository;
+    private readonly ILibraryRepository _libraryRepository;
     private readonly IJwtService _jwtService;
     private readonly IPasswordService _passwordService;
+    private readonly string _connectionString;
 
-    public AuthService(IUsersRepository usersRepository,
-        IJwtService jwtService, IPasswordService passwordService)
+    public AuthService(
+        IUsersRepository usersRepository,
+        IJwtService jwtService,
+        IPasswordService passwordService,
+        ILibraryRepository libraryRepository,
+        IConfiguration configuration)
     {
         _usersRepository = usersRepository;
         _jwtService = jwtService;
         _passwordService = passwordService;
+        _libraryRepository = libraryRepository;
+        _connectionString = configuration.GetConnectionString("Postgres");
     }
 
     public async Task<string> RegisterAsync(UserAuthDto request)
     {
-        if (await _usersRepository.IsUserByEmailAsync(request.Email))
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var sqlTransaction = await connection.BeginTransactionAsync();
+
+        try
         {
-            throw new UserAlreadyExistsException();
+            if (await _usersRepository.IsUserByEmailAsync(connection, sqlTransaction, request.Email))
+            {
+                throw new UserAlreadyExistsException();
+            }
+
+            var newUser = await _usersRepository.AddUserAsync(connection, sqlTransaction, new User
+            {
+                Email = request.Email,
+                PasswordHash = _passwordService.HashPassword(new User { Email = request.Email }, request.Password)
+            });
+
+            await _libraryRepository.CreateUserLibraryAsync(connection, sqlTransaction, newUser.UserId);
+            await sqlTransaction.CommitAsync();
+            return _jwtService.CreateToken(newUser);
         }
-
-        var newUser = await _usersRepository.AddUserAsync(new User
+        catch
         {
-            Email = request.Email,
-            PasswordHash = _passwordService.HashPassword(new User { Email = request.Email }, request.Password)
-        });
-
-        return _jwtService.CreateToken(newUser);
+            await sqlTransaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<string> LoginAsync(UserAuthDto request)

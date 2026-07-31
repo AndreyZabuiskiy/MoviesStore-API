@@ -1,3 +1,5 @@
+using Npgsql;
+
 public interface ILibraryRepository
 {
     public Task<List<LibraryMovieReadModel>> GetLibraryMoviesAsync (int userId, string visibilityType, string sortType);
@@ -6,4 +8,5 @@ public interface ILibraryRepository
     public Task<string> GetSortTypeLibrarySettingsAsync(int userId);
     public Task<bool> SetVisibleTypeLibrarySettingsAsync(int userId, string visibleType);
     public Task<string> GetVisibleTypeLibrarySettingsAsync(int userId);
+    public Task<bool> CreateUserLibraryAsync(NpgsqlConnection connection, NpgsqlTransaction sqlTransaction, int userId);
 }
