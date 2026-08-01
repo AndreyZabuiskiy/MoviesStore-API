@@ -1,3 +1,5 @@
+using Npgsql;
+
 public class LibraryService : ILibraryService
 {    
     private readonly ILibraryRepository _libraryRepository;

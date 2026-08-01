@@ -16,7 +16,7 @@ public class UsersRepository(IConfiguration configuration) : IUsersRepository
                 FROM users
                 WHERE email = @email
             )
-        ", connection);
+        ", connection, sqlTransaction);
 
         command.Parameters.AddWithValue("email", NpgsqlDbType.Text, email);
 

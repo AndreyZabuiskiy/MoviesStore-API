@@ -9,6 +9,20 @@ public class UserBalanceRepository : IUserBalanceRepository
         _connectionString = configuration.GetConnectionString("Postgres");
     }
 
+    public async Task DecreaseBalanceAsync(NpgsqlConnection connection, NpgsqlTransaction sqlTransaction, int userId, decimal amount)
+    {
+        await using var command = new NpgsqlCommand(@"
+            UPDATE users
+            SET balance = balance - @amount
+            WHERE user_id = @user_id;
+        ", connection, sqlTransaction);
+
+        command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
+        command.Parameters.AddWithValue("@amount", NpgsqlTypes.NpgsqlDbType.Numeric, amount);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<decimal?> GetBalanceAsync(int id)
     {
         await using var connection = new NpgsqlConnection(_connectionString);

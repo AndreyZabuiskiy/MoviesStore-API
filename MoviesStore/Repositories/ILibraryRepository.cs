@@ -9,4 +9,6 @@ public interface ILibraryRepository
     public Task<bool> SetVisibleTypeLibrarySettingsAsync(int userId, string visibleType);
     public Task<string> GetVisibleTypeLibrarySettingsAsync(int userId);
     public Task<bool> CreateUserLibraryAsync(NpgsqlConnection connection, NpgsqlTransaction sqlTransaction, int userId);
+    public Task<bool> IsMovieInUserLibrary(int userId, int movieId);
+    public Task<bool> AddMovieToLibraryAsync(NpgsqlConnection connection, NpgsqlTransaction sqlTransaction, int userId, int movieId);
 }

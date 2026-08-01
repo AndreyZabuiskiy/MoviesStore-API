@@ -9,6 +9,24 @@ public class LibraryRepository : ILibraryRepository
         _connectionString = configuration.GetConnectionString("Postgres");
     }
 
+    public async Task<bool> AddMovieToLibraryAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction sqlTransaction,
+        int userId,
+        int movieId)
+    {
+        await using var command = new NpgsqlCommand(@"
+            INSERT INTO user_library_movies (user_id, movie_id)
+            VALUES (@user_id, @movie_id);
+        ", connection, sqlTransaction);
+
+        command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
+        command.Parameters.AddWithValue("@movie_id", NpgsqlTypes.NpgsqlDbType.Integer, movieId);
+
+        var rows = await command.ExecuteNonQueryAsync();
+        return rows > 0;
+    }
+
     public async Task<bool> CreateUserLibraryAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction sqlTransaction,
@@ -102,6 +120,27 @@ public class LibraryRepository : ILibraryRepository
 
         var result = await command.ExecuteScalarAsync();
         return result as string;
+    }
+
+    public async Task<bool> IsMovieInUserLibrary(int userId, int movieId)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(@"
+            SELECT EXISTS
+            (
+                SELECT 1
+                FROM user_library_movies
+                WHERE user_id = @user_id 
+                    AND movie_id = @movie_id
+            );
+        ", connection);
+
+        command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
+        command.Parameters.AddWithValue("@movie_id", NpgsqlTypes.NpgsqlDbType.Integer, movieId);
+
+        return (bool)await command.ExecuteScalarAsync();
     }
 
     public async Task<bool> SetMovieVisibilityAsync(int userId, int movieId, bool isHidden)
