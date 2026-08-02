@@ -34,11 +34,6 @@ public class PurchasesService : IPurchasesService
 
         if(await _libraryRepository.IsMovieInUserLibrary(userId, movieId))
             throw new MovieIsUserLibraryException(movieId);
-        
-        var balance = await _balanceRepository.GetBalanceAsync(userId);
-
-        if (movie.Price > balance)
-            throw new NotEnoughMoneyException();
 
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -47,13 +42,23 @@ public class PurchasesService : IPurchasesService
 
         try
         {
+            var balance = await _balanceRepository.GetBalanceForUpdateAsync(connection, sqlTransaction, userId);
+
+            if (balance is null)
+                throw new UserNotFoundException(userId);
+
+            if (movie.Price > balance)
+                throw new InsufficientFundsInBalanceException();
+            
+            var newBalance = balance.Value - movie.Price;
+
             var transaction = await _transactionsRepository.AddTransactionAsync(connection, sqlTransaction, new UserTransaction
             {
                 UserId = userId,
                 TransactionType = TransactionType.Purchase,
                 Amount = movie.Price,
                 BalanceBefore = balance.Value,
-                BalanceAfter = balance.Value - movie.Price
+                BalanceAfter = newBalance
             });
 
             await _balanceRepository.DecreaseBalanceAsync(connection, sqlTransaction, userId, movie.Price);
@@ -66,7 +71,7 @@ public class PurchasesService : IPurchasesService
                 TransactionId = transaction.TransactionId
             });
 
-            await _libraryRepository.AddMovieToLibraryAsync(connection, sqlTransaction, userId, movie.MovieId);
+            await _libraryRepository.AddMovieToLibraryAsync(connection, sqlTransaction, userId, movieId);
             await sqlTransaction.CommitAsync();
             return purchase;
         }
