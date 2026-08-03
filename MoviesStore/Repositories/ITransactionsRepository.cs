@@ -6,4 +6,5 @@ public interface ITransactionsRepository
         NpgsqlConnection connection,
         NpgsqlTransaction sqlTransaction,
         UserTransaction transaction);
+    public Task<List<UserTransaction>> GetTransactionsAsync(int userId);
 }

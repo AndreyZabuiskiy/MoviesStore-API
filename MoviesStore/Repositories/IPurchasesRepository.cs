@@ -6,4 +6,6 @@ public interface IPurchasesRepository
         NpgsqlConnection connection,
         NpgsqlTransaction sqlTransaction,
         Purchase purchase);
+
+    public Task<HistoryProduct> GetHistoryProductByTransactionId(int transactionId);
 }

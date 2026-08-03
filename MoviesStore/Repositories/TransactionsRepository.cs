@@ -2,6 +2,13 @@ using Npgsql;
 
 public class TransactionsRepository : ITransactionsRepository
 {
+    private readonly string _connectionString;
+
+    public TransactionsRepository(IConfiguration configuration)
+    {
+        _connectionString = configuration.GetConnectionString("Postgres");
+    }
+
     public async Task<UserTransaction> AddTransactionAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction sqlTransaction,
@@ -49,5 +56,48 @@ public class TransactionsRepository : ITransactionsRepository
         }
 
         return null;
+    }
+
+    public async Task<List<UserTransaction>> GetTransactionsAsync(int userId)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(@"
+            SELECT transaction_id, transaction_type_id, transaction_at,
+                user_id, amount, balance_before, balance_after
+            FROM user_transactions
+            WHERE user_id = @user_id;
+        ", connection);
+
+        command.Parameters.AddWithValue("@user_id", NpgsqlTypes.NpgsqlDbType.Integer, userId);
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var transactionIdOrdinal = reader.GetOrdinal("transaction_id");
+        var transactionTypeOrdinal = reader.GetOrdinal("transaction_type_id");
+        var transactionAtOrdinal = reader.GetOrdinal("transaction_at");
+        var userIdOrdinal = reader.GetOrdinal("user_id");
+        var amountOrdinal = reader.GetOrdinal("amount");
+        var balanceBeforeOrdinal = reader.GetOrdinal("balance_before");
+        var balanceAfterOrdinal = reader.GetOrdinal("balance_after");
+
+        var transactions = new List<UserTransaction>();
+
+        while(await reader.ReadAsync())
+        {
+            transactions.Add(new UserTransaction
+            {
+                TransactionId = reader.GetInt32(transactionIdOrdinal),
+                TransactionType = (TransactionType)reader.GetInt32(transactionTypeOrdinal),
+                TransactionAt = reader.GetFieldValue<DateTime>(transactionAtOrdinal),
+                UserId = reader.GetInt32(userIdOrdinal),
+                Amount = reader.GetDecimal(amountOrdinal),
+                BalanceBefore = reader.GetDecimal(balanceBeforeOrdinal),
+                BalanceAfter = reader.GetDecimal(balanceAfterOrdinal)
+            });
+        }
+
+        return transactions;
     }
 }

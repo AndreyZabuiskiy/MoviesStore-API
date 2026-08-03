@@ -41,6 +41,7 @@ builder.Services.AddScoped<IMoviesService, MoviesService>();
 builder.Services.AddScoped<IUserBalanceService, UserBalanceService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddScoped<IPurchasesService, PurchasesService>();
+builder.Services.AddScoped<ITransactionsService, TransactionsService>();
 
 var app = builder.Build();
 
