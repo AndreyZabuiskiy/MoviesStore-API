@@ -33,6 +33,7 @@ builder.Services.AddScoped<IUserBalanceRepository, UserBalanceRepository>();
 builder.Services.AddScoped<ITransactionsRepository, TransactionsRepository>();
 builder.Services.AddScoped<ILibraryRepository, LibraryRepository>();
 builder.Services.AddScoped<IPurchasesRepository, PurchasesRepository>();
+builder.Services.AddScoped<IDirectorsRepository, DirectorsRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
@@ -42,6 +43,7 @@ builder.Services.AddScoped<IUserBalanceService, UserBalanceService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddScoped<IPurchasesService, PurchasesService>();
 builder.Services.AddScoped<ITransactionsService, TransactionsService>();
+builder.Services.AddScoped<IDirectorsService, DirectorsService>();
 
 var app = builder.Build();
 
