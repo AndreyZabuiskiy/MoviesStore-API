@@ -17,4 +17,11 @@ public class DirectorsController : ControllerBase
         var directors = await _directorsService.GetDirectors();
         return directors;
     }
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult> GetById(int id)
+    {
+        var director = await _directorsService.GetDirectorById(id);
+        return Ok(director);
+    }
 }

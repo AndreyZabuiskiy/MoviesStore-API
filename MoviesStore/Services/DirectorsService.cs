@@ -7,6 +7,23 @@ public class DirectorsService : IDirectorsService
         _directorsRepository = directorsRepository;
     }
 
+    public async Task<DirectorDto> GetDirectorById(int id)
+    {
+        var director = await _directorsRepository.GetDirectorById(id);
+
+        if (director is null)
+            throw new DirectorNotFoundException(id);
+
+        return new DirectorDto
+        {
+            DirectorId = director.DirectorId,
+            FirstName = director.FirstName,
+            LastName = director.LastName,
+            DateOfBirth = director.DateOfBirth,
+            Country = director.Country
+        };
+    }
+
     public async Task<List<DirectorCardDto>> GetDirectors()
     {
         var directors = await _directorsRepository.GetDirectors();
